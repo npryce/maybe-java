@@ -1,0 +1,96 @@
+The aim of the Maybe type is to avoid using 'null' references.
+
+A Maybe<T> represents a possibly non-existent value of type T.  The Maybe
+type makes it impossible (without deliberate effort to circumvent the API)
+to use the value when it does not exist.
+
+Maybe<T> is iterable, which means you can use it with the for statement
+to extract a value and do something with it only if there is a value.
+
+   class Customer {
+       public Maybe<String> emailAddress() { ... }
+       ...
+   }
+
+   for (String emailAddress : aCustomer.emailAddress()) {
+       sendEmailTo(emailAddress);
+   }
+
+
+Maybe<T> being iterable really comes into its own when combined with the Guava
+(previously google-collections) library, which has useful functions for
+working with iterables. You can then work in terms of entire collections
+of things that might or might not exist, without having to test for the existence
+of each one.
+
+For example, if I have a collection of 'maybe' email addresses, some
+of which might exist and some might not:
+
+    Iterable<Maybe<String>> maybeEmailAddresses = ...
+
+I can get a set of only the actual email addresses in a single expression:
+
+    Set<String> actualEmailAddresses = newHashSet(concat(maybeEmailAddresses));
+
+The newHashSet and concat functions are defined by Guava.  Concat
+creates an Iterable<T> from an Iterable<Iterable<T>>, concatenating
+the elements of each sequence into a single sequence.  Because
+nothing() is an empty iterable, the concatenated iterable only returns
+the "just one" values.
+
+More likely, I have an iterable collection of Customers.  Using a
+Function, I can write a single expression to get the email addresses
+of all customers who have an email address:
+
+Here's a function to map a customer to its 'maybe' email address:
+
+   Function<Customer,Maybe<String>> toEmailAddress = new Function<Customer, Maybe<String>>() {
+       public Maybe<String> apply(Customer c) { return c.emailAddress(); }
+   };
+
+And here's how to use it to get all the email addresses that my
+customers have, so I can send them product announcements:
+
+   Set<String> emailAddresses = newHashSet(
+               concat(transform(customers, toEmailAddress)));
+
+If I just want to send emails, I don't need the hash set:
+
+   for (String emailAddress : concat(transform(customers, toEmailAddress))) {
+       sendEmailTo(emailAddress);
+   }
+
+The name "concat" is a bit obscure, so I'd probably define an alias
+named, for example, "actual", to make the code more readable at the
+point of use.  And the Function definition is a bit clunky, but Java
+doesn't have (and doesn't look likely to get) a clean syntax for
+refering to existing functions.
+
+That's not to say that Maybe doesn't have useful methods to work with
+individual instances.  For example, the otherwise method:
+
+   T otherwise(T defaultValue);
+
+will return the Maybe's value if it exists one and a default value if
+there is not.  E.g.
+
+       assertThat(nothing().otherwise(""), equalTo(""));
+       assertThat(just("foo").otherwise(""), equalTo("foo"));
+
+Otherwise is overloaded to take a Maybe as a default:
+
+   Maybe<T> otherwise(Maybe<T> maybeDefaultValue);
+
+which lets you chain otherwise expressions:
+
+   assertThat(nothing().otherwise(just("X")).otherwise(""), equalTo("X"));
+
+Maybe also has a method that uses a function to transform a Maybe<T> to a Maybe<U>
+
+    <U> Maybe<U> transform(Function<T,U> mapping);
+
+which would transform nothing() to nothing(), otherwise apply the
+function to the actual value and return the result wrapped in a Maybe.
+
+All of which API calls make it impossible (without deliberate effort) to try to
+get the value of nothing.
