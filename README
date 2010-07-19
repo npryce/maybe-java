@@ -4,7 +4,10 @@ A Maybe<T> represents a possibly non-existent value of type T.  The Maybe
 type makes it impossible (without deliberate effort to circumvent the API)
 to use the value when it does not exist.
 
-Maybe<T> is iterable, which means you can use it with the for statement
+A Maybe<T> is either unknown(), in which case a known value does not exist,
+or definitely(v), in which case the value is known to be v.
+
+A Maybe<T> is iterable, which means you can use it with the for statement
 to extract a value and do something with it only if there is a value.
 
    class Customer {
@@ -35,8 +38,8 @@ I can get a set of only the actual email addresses in a single expression:
 The newHashSet and concat functions are defined by Guava.  Concat
 creates an Iterable<T> from an Iterable<Iterable<T>>, concatenating
 the elements of each sequence into a single sequence.  Because
-nothing() is an empty iterable, the concatenated iterable only returns
-the "just one" values.
+unknown() is an empty iterable, the concatenated iterable only returns
+the definite values.
 
 More likely, I have an iterable collection of Customers.  Using a
 Function, I can write a single expression to get the email addresses
@@ -61,21 +64,21 @@ If I just want to send emails, I don't need the hash set:
    }
 
 The name "concat" is a bit obscure, so I'd probably define an alias
-named, for example, "actual", to make the code more readable at the
+named, for example, "definite", to make the code more readable at the
 point of use.  And the Function definition is a bit clunky, but Java
 doesn't have (and doesn't look likely to get) a clean syntax for
-refering to existing functions.
+referring to existing functions.
 
 That's not to say that Maybe doesn't have useful methods to work with
 individual instances.  For example, the otherwise method:
 
    T otherwise(T defaultValue);
 
-will return the Maybe's value if it exists one and a default value if
+will return the Maybe's value if it exists one and the defaultValue if
 there is not.  E.g.
 
-       assertThat(nothing().otherwise(""), equalTo(""));
-       assertThat(just("foo").otherwise(""), equalTo("foo"));
+       assertThat(unknown().otherwise(""), equalTo(""));
+       assertThat(definitely("foo").otherwise(""), equalTo("foo"));
 
 Otherwise is overloaded to take a Maybe as a default:
 
@@ -83,14 +86,17 @@ Otherwise is overloaded to take a Maybe as a default:
 
 which lets you chain otherwise expressions:
 
-   assertThat(nothing().otherwise(just("X")).otherwise(""), equalTo("X"));
+   assertThat(unknown().otherwise(definitely("X")).otherwise(""), equalTo("X"));
 
-Maybe also has a method that uses a function to transform a Maybe<T> to a Maybe<U>
+Maybe also has a method that uses a function to map a Maybe<T> to a Maybe<U>
 
-    <U> Maybe<U> transform(Function<T,U> mapping);
+    <U> Maybe<U> to(Function<T,U> mapping);
 
-which would transform nothing() to nothing(), otherwise apply the
-function to the actual value and return the result wrapped in a Maybe.
+which would transform unknown() to unknown(), otherwise apply the function to
+the definite value and return the result wrapped in a Maybe.
+
+Similarly there is a query method that takes a Predicate<T> and maps a Maybe<T>
+to a Maybe<Boolean>.
 
 All of which API calls make it impossible (without deliberate effort) to try to
 get the value of nothing.
