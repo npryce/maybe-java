@@ -74,13 +74,13 @@ individual instances.  For example, the otherwise method:
 
    T otherwise(T defaultValue);
 
-will return the Maybe's value if it exists one and the defaultValue if
-there is not.  E.g.
+will return the Maybe's value if it is known and the defaultValue if it is not.
+E.g.
 
        assertThat(unknown().otherwise(""), equalTo(""));
        assertThat(definitely("foo").otherwise(""), equalTo("foo"));
 
-Otherwise is overloaded to take a Maybe as a default:
+Otherwise is overloaded to take a Maybe<T> as a default:
 
    Maybe<T> otherwise(Maybe<T> maybeDefaultValue);
 
