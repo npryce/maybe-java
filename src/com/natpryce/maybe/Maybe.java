@@ -112,7 +112,7 @@ public abstract class Maybe<T> implements Iterable<T> {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            DefiniteValue that = (DefiniteValue) o;
+            DefiniteValue<?> that = (DefiniteValue<?>) o;
 
             return theValue.equals(that.theValue);
 
